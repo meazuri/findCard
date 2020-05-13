@@ -10,26 +10,21 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.seint.findcard.R
 import com.seint.findcard.model.Card
-import com.seint.findcard.model.FindCard
+import com.seint.findcard.viewModel.FindCardViewModel
 
 /**
  * Created by Seint San Thandar Bo on 12/5/20.
  */
-class CardGameAdapter (private val context: Context ,val game:FindCard ,val itemClickListener: ItemClickListener) : RecyclerView.Adapter<CardGameAdapter.MyViewHolder>(){
+class CardGameAdapter (private val context: Context, val game: FindCardViewModel, val itemClickListener: ItemClickListener) : RecyclerView.Adapter<CardGameAdapter.MyViewHolder>(){
     private val layoutInflater = LayoutInflater.from(context)
-
-    private var numberCard = mutableMapOf<Card,String>()
-    private var flipCount = 0
-
-
     private var cardList: List<Card> = mutableListOf()
     inner class MyViewHolder(itemView: View?) : RecyclerView.ViewHolder(itemView!!) {
         var tvCard = itemView?.findViewById<TextView>(R.id.tvNumber)
         var dataPosition = 0
         init {
             itemView?.setOnClickListener {
-                flipCount += 1
 
+                game.numberOfSteps.value = game.numberOfSteps.value?.plus(1)
                 val card = cardList.get(dataPosition)
                 game.chooseCard(dataPosition)
                 getCardText(card)
@@ -56,7 +51,7 @@ class CardGameAdapter (private val context: Context ,val game:FindCard ,val item
         val card = cardList.get(position)
 
         if(card.isFaceUp) {
-            holder.tvCard?.text =  numberCard.get(card)
+            holder.tvCard?.text =  game.numberCard.value?.get(card)
             holder.tvCard?.setTextColor(context.resources.getColor(R.color.background))
 
             holder.tvCard?.background=  context.resources.getDrawable(R.drawable.card_bg_white)
@@ -81,14 +76,22 @@ class CardGameAdapter (private val context: Context ,val game:FindCard ,val item
     }
 
     fun getCardText(card: Card): String ?{
-        if (numberCard.filter { it.key == card }.isEmpty() && game.numberChoices.count()> 0){
-            val randomIndex = (game.numberChoices.count() -1).Random()
-            val cardString = game.numberChoices.get(randomIndex).toString()
-            numberCard.put(card,cardString)
-            game.numberChoices.removeAt(randomIndex)
+
+        if (game.numberCard.value == null || (game.numberCard.value?.filter { it.key == card }?.isEmpty()!! && game.numberChoices.value?.count()!!> 0)){
+            val randomIndex = (game.numberChoices.value?.count()!! -1).Random()
+            val cardString = game.numberChoices.value?.get(randomIndex).toString()
+
+            if(game.numberCard.value == null ){
+                val map =mutableMapOf<Card,String>()
+                map.put(card,cardString)
+                game.numberCard.value = map
+            }else {
+                game.numberCard.value?.put(card, cardString)
+            }
+            game.numberChoices.value?.removeAt(randomIndex)
         }
 
-        return  numberCard.get(card) ?: "?"
+        return  game.numberCard.value?.get(card) ?: "?"
     }
     fun checkLastTryUnmatched(){
             val handler = Handler()

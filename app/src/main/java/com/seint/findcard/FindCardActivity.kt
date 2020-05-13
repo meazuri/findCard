@@ -4,23 +4,19 @@ import android.app.AlertDialog
 import android.content.DialogInterface
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.util.Log
+import androidx.lifecycle.Observer
+import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.GridLayoutManager
 import com.seint.findcard.model.Card
-import com.seint.findcard.model.FindCard
+import com.seint.findcard.viewModel.FindCardViewModel
 import com.seint.findcard.views.CardGameAdapter
 import com.seint.findcard.views.ItemClickListener
 import kotlinx.android.synthetic.main.activity_main.*
 
 class FindCardActivity : AppCompatActivity(), ItemClickListener {
-
     private lateinit var  mAdapter: CardGameAdapter
 
-    var numberOfSteps : Int =0
-    set(value) {
-        tvSteps.setText("STEPS : ($value)")
-        field = value
-    }
+    lateinit var  findCard: FindCardViewModel
 
 
 
@@ -28,11 +24,13 @@ class FindCardActivity : AppCompatActivity(), ItemClickListener {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-
-        val game = FindCard(6)
-
-        mAdapter = CardGameAdapter(this,game, this)
-        mAdapter.setCardList(game.cards)
+        findCard = ViewModelProviders.of(this).get(FindCardViewModel::class.java)
+        findCard.cards.observe(this, Observer {
+            mAdapter.setCardList(it)
+            recyclerView.adapter = mAdapter
+            mAdapter.notifyDataSetChanged()
+        })
+        mAdapter = CardGameAdapter(this,findCard, this)
 
         val gridLm = GridLayoutManager(this,3)
         recyclerView.adapter = mAdapter
@@ -40,21 +38,20 @@ class FindCardActivity : AppCompatActivity(), ItemClickListener {
         recyclerView.isNestedScrollingEnabled = false
 
         btnRestart.setOnClickListener {
-           val game = FindCard(6)
-            mAdapter = CardGameAdapter(this,game,this)
-            mAdapter.setCardList(game.cards)
-            recyclerView.adapter = mAdapter
-            mAdapter.notifyDataSetChanged()
-            numberOfSteps = 0
-
+            findCard.initData()
         }
+
+        findCard.numberOfSteps.observe(this, Observer {
+            tvSteps.setText("STEPS : ($it)")
+        })
 
     }
 
     fun gameOver (){
+        val totalSteps = findCard.numberOfSteps.value
         AlertDialog.Builder(this)
             .setTitle("Congratulation")
-            .setMessage("You win this game by $numberOfSteps steps!")
+            .setMessage("You win this game by $totalSteps steps!")
             .setPositiveButton(
                 android.R.string.ok,
                 DialogInterface.OnClickListener { dialog, which ->
@@ -64,7 +61,6 @@ class FindCardActivity : AppCompatActivity(), ItemClickListener {
     }
 
     override fun onItemClicked(card: Card) {
-        numberOfSteps +=1
         if ( mAdapter.isGameOver()){
           gameOver()
         }
